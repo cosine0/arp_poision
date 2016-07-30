@@ -146,10 +146,6 @@ class ARP(object):
             self.target_protocol_address.in_bytes
         ))
 
-    def send(self, pcap_handle):
-        assert isinstance(pcap_handle, pcap.pcap)
-        pcap_handle.sendpacket(self.as_bytes())
-
 
 # some usual ARP presets
 def normal_request_arp(asker_mac, asker_ip, target_ip):
