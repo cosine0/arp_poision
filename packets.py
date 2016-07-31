@@ -63,8 +63,8 @@ class MacAddress(object):
             # for example 'xx:xx:xx:xx:xx:xx' or 'xx-xx-xx-xx-xx-xx'
             #  or 'xxxxxx-xxxxxx' or 'xxxxxxxxxxxx'
             hexonly = ''.join(c for c in address if c in string.hexdigits)
-            if len(hexonly) == 12:
-                raise ValueError('address is not in right form.')
+            if len(hexonly) != 12:
+                raise ValueError('MAC address is not in right form. ({} hex digits not 12)'.format(len(hexonly)))
             self.in_bytes = hexonly.decode('hex')
 
     @property
