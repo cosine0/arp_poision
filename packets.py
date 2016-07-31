@@ -1,6 +1,5 @@
-import struct
-import pcap
 import string
+import struct
 
 
 class IPv4Address(object):
@@ -146,6 +145,9 @@ class ARP(object):
             self.target_protocol_address.in_bytes
         ))
 
+    def __str__(self):
+        return self.as_bytes()
+
 
 # some usual ARP presets
 def normal_request_arp(asker_mac, asker_ip, target_ip):
@@ -186,3 +188,38 @@ def normal_reply_arp(replier_mac, replier_ip, recipient_mac, recipient_ip):
     return arp
 
 
+class IP(object):
+    def __init__(self, raw_packet=None):
+        if raw_packet is None:
+            self.ethernet = Ethernet()
+            self.version = None
+            self.type_of_service = None
+            self.header_length_in_words = None
+            self.total_length = None
+            self.fragment_identifier = None
+            self.fragmentation_flag = None
+            self.fragmentation_offset = None
+            self.time_to_live = None
+            self.protocol = None
+            self.header_checksum = None
+            self.source_address = None
+            self.destination_address = None
+            self.data = None
+        else:
+            self.ethernet = Ethernet(raw_packet)
+            raw_ip = self.ethernet.data
+
+            first_byte = struct.unpack('!B', raw_ip[0])[0]
+            self.version = first_byte & 0xf
+            self.header_length_in_words = first_byte >> 4
+            self.type_of_service = struct.unpack('!B', raw_ip[1])[0]
+            self.total_length = struct.unpack('!H', raw_ip[2:4])[0]
+            self.fragment_identifier = struct.unpack('!H', raw_ip[4:6])
+            self.fragment_flag = struct.unpack('!H', raw_ip[6])[0] & 0b111
+            self.fragment_offset = struct.unpack('!H', raw_ip[6:8])[0] >> 3
+            self.time_to_live = struct.unpack('!B', raw_ip[8])[0]
+            self.protocol = struct.unpack('!B', raw_ip[9])[0]
+            self.header_checksum = struct.unpack('!H', raw_ip[10:12])[0]
+            self.source_address = IPv4Address(raw_ip[12:16])
+            self.destination_address = IPv4Address(raw_ip[16:20])
+            self.data = raw_ip[20:]
