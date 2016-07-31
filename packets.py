@@ -69,7 +69,7 @@ class MacAddress(object):
 
     @property
     def in_string(self):
-        return ':'.join('{:02X}'.format(byte) for byte in self.in_bytes)
+        return ':'.join('{:02X}'.format(ord(byte)) for byte in self.in_bytes)
 
     def __repr__(self):
         return 'MacAddress({})'.format(self.in_string)
