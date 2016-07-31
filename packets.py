@@ -93,8 +93,8 @@ class Ethernet(object):
 
     def header_as_bytes(self):
         return ''.join((
-            self.destination_mac,
-            self.source_mac,
+            self.destination_mac.in_bytes,
+            self.source_mac.in_bytes,
             struct.pack('!H', self.type)
         ))
 
@@ -128,7 +128,7 @@ class ARP(object):
             self.operation = struct.unpack('!H', raw_arp[6:8])[0]
             self.sender_hardware_address = MacAddress(raw_arp[8:14])
             self.sender_protocol_address = IPv4Address(raw_arp[14:18])
-            self.target_hardware_address = IPv4Address(raw_arp[18:24])
+            self.target_hardware_address = MacAddress(raw_arp[18:24])
             self.target_protocol_address = IPv4Address(raw_arp[24:28])
 
     def as_bytes(self):
