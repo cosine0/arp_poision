@@ -39,16 +39,7 @@ def reply_to_request(infection_reply):
 
 
 def relay_ip(from_ip, to_ip):
-    pcap_handle = pcap.pcap(timeout_ms=0)
-    for capture in pcap_handle:
-        if capture is None:
-            continue
-        time_stamp, packet = capture
-        arp = ARP(packet)
-        if arp.operation == ARP.OP_REPLY and arp.sender_protocol_address == victim_ip:
-            victim_mac = arp.sender_hardware_address
-            print "[>+] victim replied his mac is '{}'".format(victim_mac.in_string)
-            break
+    raise NotImplementedError()
 
 
 def main():
@@ -63,8 +54,17 @@ def main():
     my_mac = MacAddress(addresses[netifaces.AF_LINK][0]['addr'])
     my_ip = IPv4Address(addresses[netifaces.AF_INET][0]['addr'])
 
-    interface_name = 'default' if len(sys.argv) < 3 else sys.argv[2]
-    gateway_ip = IPv4Address(netifaces.gateways()[interface_name][netifaces.AF_INET][0])
+    gateways = netifaces.gateways()
+    if len(sys.argv) < 3:
+        gateway_ip = gateways[netifaces.AF_INET][0][0]
+    else:
+        for address, interface, is_default in gateways[netifaces.AF_INET]:
+            if interface == sys.argv[2]:
+                gateway_ip = address
+                break
+        else:
+            print "There is no interface named '{}'".format(sys.argv[2])
+            exit(1)
     victim_ip = IPv4Address(sys.argv[1])
     print
 
