@@ -144,7 +144,7 @@ def main():
     periodical = threading.Thread(target=send_periodically, args=(infection_arp,))
     replier.start()
     periodical.start()
-    relay_ip(1, 2)
+    relay_ip()
 
 
 if __name__ == '__main__':
