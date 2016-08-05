@@ -95,11 +95,14 @@ class Ethernet(object):
         return self.header_as_bytes() + self.data
 
     def header_as_bytes(self):
-        return ''.join((
-            self.destination_mac.in_bytes,
-            self.source_mac.in_bytes,
-            struct.pack('!H', self.type)
-        ))
+        try:
+            return ''.join((
+                self.destination_mac.in_bytes,
+                self.source_mac.in_bytes,
+                struct.pack('!H', self.type)
+            ))
+        except:
+            print `self.type`
 
 
 class ARP(object):
