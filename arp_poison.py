@@ -65,9 +65,7 @@ def main():
         exit(1)
 
     gateways = netifaces.gateways()
-    print `netifaces.gateways()`
     interface_name = pcap.lookupdev()
-    print `netifaces.ifaddresses(interface_name)`
     addresses = netifaces.ifaddresses(interface_name)
 
     my_mac = MacAddress(addresses[netifaces.AF_LINK][0]['addr'])
