@@ -88,21 +88,18 @@ class Ethernet(object):
         else:
             self.destination_mac = MacAddress(raw_packet[:6])
             self.source_mac = MacAddress(raw_packet[6:12])
-            self.type = struct.unpack('!H', raw_packet[12:14])
+            self.type = struct.unpack('!H', raw_packet[12:14])[0]
             self.data = raw_packet[14:]
 
     def as_bytes(self):
         return self.header_as_bytes() + self.data
 
     def header_as_bytes(self):
-        try:
-            return ''.join((
-                self.destination_mac.in_bytes,
-                self.source_mac.in_bytes,
-                struct.pack('!H', self.type)
-            ))
-        except:
-            print `self.type`
+        return ''.join((
+            self.destination_mac.in_bytes,
+            self.source_mac.in_bytes,
+            struct.pack('!H', self.type)
+        ))
 
 
 class ARP(object):
