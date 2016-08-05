@@ -53,7 +53,7 @@ def relay_ip():
             relaying_packet = Ethernet(packet)
             relaying_packet.source_mac = my_mac
             relaying_packet.destination_mac = gateway_mac
-            pcap_handle.sendpacket()
+            pcap_handle.sendpacket(relaying_packet.as_bytes())
             print 'sent relay.'
         print 'relaying ip stopped unexpectedly. restarting.'
 
