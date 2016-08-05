@@ -44,7 +44,7 @@ def reply_to_request(infection_reply):
 
 def relay_ip():
     pcap_handle = pcap.pcap(timeout_ms=0)
-    pcap_handle.setfilter('ip src host {}'.format(victim_ip.in_string))
+    pcap_handle.setfilter('ip src host {} and dst host {}'.format(victim_ip.in_string, gateway_ip.in_string))
     while True:
         for capture in pcap_handle:
             if capture is None:
