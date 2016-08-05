@@ -13,7 +13,7 @@ gateway_ip = None
 gateway_mac = None
 
 
-def send_periodically(infection_reply, interval_in_second=1):
+def send_periodically(infection_reply, interval_in_second=20):
     pcap_handle = pcap.pcap(timeout_ms=0)
     while True:
         pcap_handle.sendpacket(infection_reply.as_bytes())
