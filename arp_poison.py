@@ -49,11 +49,12 @@ def relay_ip():
             if capture is None:
                 continue
             time_stamp, packet = capture
+            print "got victim's ip packet to gateway."
             relaying_packet = Ethernet(packet)
             relaying_packet.source_mac = my_mac
             relaying_packet.destination_mac = gateway_mac
             pcap_handle.sendpacket()
-
+            print 'sent relay.'
         print 'relaying ip stopped unexpectedly. restarting.'
 
 
