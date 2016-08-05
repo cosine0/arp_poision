@@ -15,6 +15,7 @@ gateway_mac = None
 
 def send_periodically(infection_reply, interval_in_second=20):
     pcap_handle = pcap.pcap(timeout_ms=0)
+    pcap_handle.setfilter('arp')
     while True:
         pcap_handle.sendpacket(infection_reply.as_bytes())
         print '[<+] Periodical packet sent'
@@ -23,6 +24,7 @@ def send_periodically(infection_reply, interval_in_second=20):
 
 def reply_to_request(infection_reply):
     pcap_handle = pcap.pcap(timeout_ms=0)
+    pcap_handle.setfilter('arp')
     while True:
         for capture in pcap_handle:
             if capture is None:
